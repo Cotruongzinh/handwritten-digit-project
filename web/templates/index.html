@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Handwritten Number Recognition</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+    <div class="space-bg">
+        <span class="planet planet-1"></span>
+        <span class="planet planet-2"></span>
+        <span class="star star-1"></span>
+        <span class="star star-2"></span>
+        <span class="star star-3"></span>
+        <span class="star star-4"></span>
+        <span class="star star-5"></span>
+    </div>
+
+    <main class="app">
+        <header class="hero">
+            <p class="eyebrow">AI Applications in Software Engineering</p>
+            <h1>Handwritten Number Recognition</h1>
+            <p class="subtitle">
+                Draw or upload handwritten numbers such as <strong>7</strong>, <strong>25</strong>, <strong>108</strong>, or <strong>2026</strong>.
+                The Logistic Regression model predicts each digit from left to right.
+            </p>
+        </header>
+
+        <section class="main-board">
+            <section class="draw-area">
+                <div class="board-top">
+                    <div>
+                        <p class="label">Cosmic Paint Pad</p>
+                        <h2>Write your number</h2>
+                    </div>
+
+                    <details class="tool-menu" id="toolMenu">
+                        <summary>
+                            <span class="menu-icon">☰</span>
+                            Tools
+                        </summary>
+
+                        <div class="menu-panel">
+                            <div class="tool-group">
+                                <p>Brush type</p>
+                                <button class="tool-btn active" data-tool="pencil">✏ Pencil</button>
+                                <button class="tool-btn" data-tool="marker">🖊 Marker</button>
+                                <button class="tool-btn" data-tool="neon">🪄 Neon Pen</button>
+                                <button class="tool-btn" data-tool="pixel">▦ Pixel Brush</button>
+                                <button class="tool-btn" data-tool="eraser">🧽 Eraser</button>
+                            </div>
+
+                            <div class="tool-group">
+                                <p>Brush size</p>
+                                <div class="size-list">
+                                    <button class="size-btn small" data-size="8" aria-label="Small brush"></button>
+                                    <button class="size-btn medium active" data-size="14" aria-label="Medium brush"></button>
+                                    <button class="size-btn large" data-size="22" aria-label="Large brush"></button>
+                                </div>
+                            </div>
+
+                            <div class="tool-group">
+                                <p>Ink color</p>
+                                <div class="color-list">
+                                    <button class="color-dot black active" data-color="#111111" aria-label="Black"></button>
+                                    <button class="color-dot blue" data-color="#00b7ff" aria-label="Blue"></button>
+                                    <button class="color-dot purple" data-color="#7b61ff" aria-label="Purple"></button>
+                                    <button class="color-dot pink" data-color="#ff4fd8" aria-label="Pink"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="canvas-card">
+
+                    <canvas id="digitCanvas" width="640" height="640">
+                        Your browser does not support canvas.
+                    </canvas>
+
+                    <p class="canvas-hint">Draw one or more separated digits here. Example: 7, 25, 108, 2026.</p>
+                </div>
+
+                <div class="bottom-actions">
+                    <button class="btn secondary" id="clearBtn">Clear Canvas</button>
+                    <button class="btn ghost" id="undoBtn">Undo</button>
+                    <button class="btn ghost" id="saveBtn">Save Image</button>
+                </div>
+            </section>
+
+            <aside class="predict-sidebar">
+                <div class="model-card">
+                    <p class="label">Model</p>
+                    <h3>Logistic Regression</h3>
+                </div>
+
+                <div class="preview-box">
+                    <p class="preview-title">Input Preview</p>
+                    <canvas id="previewCanvas" width="28" height="28"></canvas>
+                    <p class="preview-note">Canvas or uploaded image preview.</p>
+                </div>
+
+                <button class="predict-btn" id="predictBtn">Predict Number</button>
+
+                <div class="upload-box">
+                    <p class="result-label">Upload Image</p>
+                    <input type="file" id="uploadInput" accept="image/png, image/jpeg, image/jpg, image/webp" hidden />
+                    <label class="upload-label" for="uploadInput">Choose Handwritten Image</label>
+                    <p class="upload-name" id="uploadFileName">No image selected</p>
+                    <button class="upload-btn" id="uploadBtn">Predict Uploaded Image</button>
+                </div>
+
+                <div class="result-box">
+                    <p class="result-label">Prediction Result</p>
+                    <div class="result-number" id="resultNumber">?</div>
+                    <p class="result-text" id="resultText">Predicted Number</p>
+                    <p class="confidence" id="confidenceText">Draw or upload one or more digits, then click Predict.</p>
+                </div>
+
+                <div class="digit-list">
+                    <p>Classes</p>
+                    <div>
+                        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                        <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section class="info-grid">
+            <article>
+                <h3>1. Draw / Upload</h3>
+                <p>User draws a number on canvas or uploads a handwritten number image.</p>
+            </article>
+            <article>
+                <h3>2. Segment</h3>
+                <p>The backend separates the image into individual digits from left to right.</p>
+            </article>
+            <article>
+                <h3>3. Predict</h3>
+                <p>Each digit is classified by Logistic Regression and joined into a final number.</p>
+            </article>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
