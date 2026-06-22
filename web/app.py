@@ -7,24 +7,15 @@ import base64
 import io
 
 
-# =====================================================
-# 1. PATH SETUP
-# =====================================================
 WEB_DIR = Path(__file__).resolve().parent
 MODEL_PATH = WEB_DIR / "model" / "digit_logistic_model.pkl"
 
 
-# =====================================================
-# 2. CREATE FLASK APP
-# =====================================================
+
 app = Flask(__name__)
 
 
-# =====================================================
-# 3. LOAD EXPORTED MODEL - GLOBAL SCOPE
-# =====================================================
-# Load model một lần khi Flask khởi động.
-# Không load model bên trong route /predict.
+
 
 model_package = joblib.load(MODEL_PATH)
 
@@ -35,9 +26,7 @@ input_features = model_package.get("input_features", 784)
 print("Model loaded successfully from:", MODEL_PATH)
 
 
-# =====================================================
-# 4. IMAGE PREPROCESSING HELPERS
-# =====================================================
+
 def center_by_mass(img):
     """
     Căn giữa ảnh 28x28 theo trọng tâm pixel sáng.
@@ -58,7 +47,6 @@ def center_by_mass(img):
     shifted = np.roll(img, shift_y, axis=0)
     shifted = np.roll(shifted, shift_x, axis=1)
 
-    # Xóa vùng bị cuộn vòng
     if shift_y > 0:
         shifted[:shift_y, :] = 0
     elif shift_y < 0:
@@ -87,16 +75,13 @@ def image_to_ink_array(image):
     image = image.convert("L")
     arr = np.array(image).astype("uint8")
 
-    # Ước lượng nền bằng median.
-    # Nếu ảnh sáng nhiều hơn tối => nền trắng, nét đen => đảo màu.
-    # Nếu ảnh tối nhiều hơn sáng => nền đen, nét sáng => giữ nguyên.
+
     if np.median(arr) > 127:
         ink = 255 - arr
     else:
         ink = arr.copy()
 
-    # Lọc nhiễu nền.
-    # Ngưỡng 35 ổn cho canvas; vẫn đủ mềm cho ảnh upload đơn giản.
+
     ink[ink < 35] = 0
 
     return ink
@@ -130,10 +115,8 @@ def find_digit_regions(cropped_ink):
     """
     h, w = cropped_ink.shape
 
-    # Đếm số pixel sáng theo từng cột
     projection = (cropped_ink > 0).sum(axis=0)
 
-    # Cột được xem là có nét nếu có đủ pixel sáng
     active_threshold = max(1, int(h * 0.01))
     active = projection > active_threshold
 
@@ -153,7 +136,6 @@ def find_digit_regions(cropped_ink):
     if not raw_regions:
         return []
 
-    # Gộp các vùng quá gần nhau để tránh tách nhầm 1 chữ số thành nhiều phần
     merge_gap = max(4, int(w * 0.025))
     merged = [raw_regions[0]]
 
@@ -166,7 +148,6 @@ def find_digit_regions(cropped_ink):
         else:
             merged.append(region)
 
-    # Lọc nhiễu nhỏ
     final_regions = []
     min_width = max(3, int(w * 0.01))
 
@@ -191,7 +172,6 @@ def extract_digit_arrays(image):
     h, w = cropped.shape
     x_regions = find_digit_regions(cropped)
 
-    # Nếu không tách được region, xem như 1 chữ số
     if not x_regions:
         return [cropped]
 
@@ -200,7 +180,6 @@ def extract_digit_arrays(image):
     for x1, x2 in x_regions:
         region = cropped[:, x1:x2 + 1]
 
-        # Lấy lại y theo nét thật của từng vùng
         coords = np.column_stack(np.where(region > 0))
 
         if coords.size == 0:
@@ -211,12 +190,10 @@ def extract_digit_arrays(image):
 
         digit = region[y_min:y_max + 1, x_min_local:x_max_local + 1]
 
-        # Padding nhẹ để không cắt sát nét
         dh, dw = digit.shape
         pad = max(2, int(max(dh, dw) * 0.08))
         digit = np.pad(digit, pad, mode="constant", constant_values=0)
 
-        # Bỏ vùng quá nhỏ vì có thể là nhiễu
         if digit.shape[0] * digit.shape[1] < 25:
             continue
 
@@ -234,7 +211,6 @@ def preprocess_digit_array(digit, long_side=20):
     if h <= 0 or w <= 0:
         return np.zeros((1, input_features), dtype="float32")
 
-    # Resize giữ tỉ lệ, cạnh dài nhất về long_side
     if h > w:
         new_h = long_side
         new_w = max(1, int(round(w * long_side / h)))
@@ -246,7 +222,6 @@ def preprocess_digit_array(digit, long_side=20):
     digit_image = digit_image.resize((new_w, new_h), Image.Resampling.LANCZOS)
     digit_array = np.array(digit_image).astype("float32")
 
-    # Đưa vào giữa ảnh 28x28
     final_image = np.zeros((28, 28), dtype="float32")
 
     y_offset = (28 - new_h) // 2
@@ -254,10 +229,8 @@ def preprocess_digit_array(digit, long_side=20):
 
     final_image[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = digit_array
 
-    # Căn giữa theo trọng tâm pixel
     final_image = center_by_mass(final_image)
 
-    # Normalize 0-1
     final_image = final_image / 255.0
 
     return final_image.reshape(1, input_features).astype("float32")
@@ -318,18 +291,10 @@ def predict_number_from_image(image):
         "average_confidence": average_confidence
     }
 
-
-# =====================================================
-# 5. HOME PAGE
-# =====================================================
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
-# =====================================================
-# 6. PREDICT API
-# =====================================================
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -343,14 +308,11 @@ def predict():
 
         image_data = data["image"]
 
-        # Bỏ phần đầu: data:image/png;base64,...
         image_data = image_data.split(",")[1]
 
-        # Decode base64 thành ảnh
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
 
-        # Dự đoán số, có thể là 1 chữ số hoặc nhiều chữ số
         result = predict_number_from_image(image)
 
         if result["number"] == "":
@@ -381,8 +343,6 @@ def predict():
         }), 500
 
 
-# =====================================================
-# 7. RUN SERVER
-# =====================================================
+
 if __name__ == "__main__":
     app.run(debug=True)
